@@ -89,7 +89,7 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
     _messageController.dispose();
     // testAutomation.dispose();
     inspector.endCurrentSession();
-    socket.disconnect();
+    // socket.disconnect();
     super.dispose();
   }
 
