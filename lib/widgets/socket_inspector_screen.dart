@@ -21,6 +21,7 @@ class SocketInspectorScreen extends StatefulWidget {
 class _SocketInspectorScreenState extends State<SocketInspectorScreen>
     with TickerProviderStateMixin {
   final SocketInspectorCore inspector = SocketInspectorCore();
+  // late InspectableSocketIO socket;
   late TabController _tabController;
   bool _useRegex = false;
   final _searchController = TextEditingController();
@@ -33,6 +34,18 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
   final bool _isConnected = false;
   final _messageController = TextEditingController();
   int _burstCount = 10;
+
+  // void _initializeSocket() {
+  //   socket = InspectableSocketIO(
+  //     _uriController.text,
+  //     options: {
+  //       'transports': ['websocket'],
+  //       'autoConnect': false,
+  //     },
+  //   );
+  //   socket.connect();
+  //   // testAutomation = SocketTestAutomation(socket);
+  // }
 
   IO.Socket get socket => widget.socket;
   @override
@@ -89,7 +102,7 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
     _messageController.dispose();
     // testAutomation.dispose();
     inspector.endCurrentSession();
-    // socket.disconnect();
+    socket.disconnect();
     super.dispose();
   }
 
@@ -97,7 +110,7 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Socket.IO Inspector"),
+        title: Text("Socket.IO Inspector"),
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
@@ -108,24 +121,26 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
             Tab(icon: Icon(Icons.settings), text: 'Controls'),
           ],
         ),
-        actions: [
-          // IconButton(
-          //   icon: const Icon(Icons.add),
-          //   onPressed: () => socket.emit('chat message', {'data': dataToEmit}),
-          // ),
-          IconButton(
-            icon: const Icon(Icons.delete),
-            onPressed: () {
-              inspector.clear();
-              setState(() {});
-            },
-          ),
-        ],
+        // actions: [
+        //   IconButton(
+        //     icon: const Icon(Icons.add),
+        //     onPressed:
+        //         () => socket.emitWithAck('chat message', {'data': dataToEmit}),
+        //   ),
+        //   IconButton(
+        //     icon: const Icon(Icons.delete),
+        //     onPressed: () {
+        //       inspector.clear();
+        //       setState(() {});
+        //     },
+        //   ),
+        // ],
       ),
-      floatingActionButton: FloatingActionButton(
-        child: const Icon(Icons.link_off),
-        onPressed: () => socket.disconnect(),
-      ),
+
+      // floatingActionButton: FloatingActionButton(
+      //   child: const Icon(Icons.link_off),
+      //   onPressed: () => socket.disconnect(),
+      // ),
       body: TabBarView(
         controller: _tabController,
         children: [
@@ -187,12 +202,33 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
           return const Center(child: Text('No events to display'));
         }
 
-        return ListView.builder(
-          itemCount: events.length,
-          itemBuilder: (context, index) {
-            final event = events[index];
-            return _buildEventCard(event);
-          },
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(height: 8),
+            Text(
+              'Server: ${socket.io.uri}',
+              style: const TextStyle(fontSize: 14, color: Colors.white),
+            ),
+            Text(
+              'Transports: ${socket.io.options?['transports']?.join(', ')}',
+              style: const TextStyle(fontSize: 14, color: Colors.white),
+            ),
+            Text(
+              'Status: ${socket.connected ? "Connected 🟢" : "Disconnected 🔴"}',
+              style: const TextStyle(fontSize: 14, color: Colors.white),
+            ),
+            SizedBox(height: 8),
+            Expanded(
+              child: ListView.builder(
+                itemCount: events.length,
+                itemBuilder: (context, index) {
+                  final event = events[index];
+                  return _buildEventCard(event);
+                },
+              ),
+            ),
+          ],
         );
       },
     );
@@ -211,7 +247,7 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
           children: [
             Expanded(
               child: Text(
-                event.eventName ?? event.type.name,
+                "event: ${event.eventName ?? event.type.name}",
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
