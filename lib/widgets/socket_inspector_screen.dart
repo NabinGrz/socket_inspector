@@ -21,7 +21,6 @@ class SocketInspectorScreen extends StatefulWidget {
 class _SocketInspectorScreenState extends State<SocketInspectorScreen>
     with TickerProviderStateMixin {
   final SocketInspectorCore inspector = SocketInspectorCore();
-  // late InspectableSocketIO socket;
   late TabController _tabController;
   bool _useRegex = false;
   final _searchController = TextEditingController();
@@ -34,18 +33,6 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
   final bool _isConnected = false;
   final _messageController = TextEditingController();
   int _burstCount = 10;
-
-  // void _initializeSocket() {
-  //   socket = InspectableSocketIO(
-  //     _uriController.text,
-  //     options: {
-  //       'transports': ['websocket'],
-  //       'autoConnect': false,
-  //     },
-  //   );
-  //   socket.connect();
-  //   // testAutomation = SocketTestAutomation(socket);
-  // }
 
   IO.Socket get socket => widget.socket;
   @override
