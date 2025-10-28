@@ -1,3 +1,5 @@
+library;
+
 export 'src/inspectable_web_socket.dart';
 export 'src/socket_event.dart';
 export 'src/socket_filter.dart';
