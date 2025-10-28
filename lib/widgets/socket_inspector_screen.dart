@@ -5,13 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:socket_inspector/src/inspectable_web_socket.dart';
 import 'package:socket_inspector/src/socket_event.dart';
 import 'package:socket_inspector/src/socket_filter.dart';
 import 'package:socket_inspector/src/socket_inspector_core.dart';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 class SocketInspectorScreen extends StatefulWidget {
-  final InspectableSocketIO socket;
+  final IO.Socket socket;
   const SocketInspectorScreen({super.key, required this.socket});
 
   @override
@@ -31,7 +31,7 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
   final _uriController = TextEditingController(
     text: 'http://192.168.110.80:3000',
   );
-  bool _isConnected = false;
+  final bool _isConnected = false;
   final _messageController = TextEditingController();
   int _burstCount = 10;
 
@@ -47,7 +47,7 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
   //   // testAutomation = SocketTestAutomation(socket);
   // }
 
-  InspectableSocketIO get socket => widget.socket;
+  IO.Socket get socket => widget.socket;
   @override
   void initState() {
     _tabController = TabController(length: 5, vsync: this);
@@ -883,31 +883,30 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
           ),
           const SizedBox(height: 8),
 
-          Row(
-            children: [
-              ElevatedButton.icon(
-                icon: Icon(_isConnected ? Icons.link_off : Icons.link),
-                label: Text(_isConnected ? 'Disconnect' : 'Connect'),
-                onPressed: () {
-                  if (_isConnected) {
-                    socket.disconnect();
-                    setState(() => _isConnected = false);
-                  } else {
-                    // _initializeSocket();
-                    socket.connectToSocket();
-                    setState(() => _isConnected = true);
-                  }
-                },
-              ),
-              const SizedBox(width: 8),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.bug_report),
-                label: const Text('Simulate Error'),
-                onPressed: socket.simulateError,
-              ),
-            ],
-          ),
-
+          // Row(
+          //   children: [
+          //     ElevatedButton.icon(
+          //       icon: Icon(_isConnected ? Icons.link_off : Icons.link),
+          //       label: Text(_isConnected ? 'Disconnect' : 'Connect'),
+          //       onPressed: () {
+          //         if (_isConnected) {
+          //           socket.disconnect();
+          //           setState(() => _isConnected = false);
+          //         } else {
+          //           // _initializeSocket();
+          //           socket.connectToSocket();
+          //           setState(() => _isConnected = true);
+          //         }
+          //       },
+          //     ),
+          //     const SizedBox(width: 8),
+          //     ElevatedButton.icon(
+          //       icon: const Icon(Icons.bug_report),
+          //       label: const Text('Simulate Error'),
+          //       onPressed: socket.simulateError,
+          //     ),
+          //   ],
+          // ),
           const SizedBox(height: 24),
           Text('Test Messages', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),
@@ -927,9 +926,9 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
                 icon: const Icon(Icons.send),
                 label: const Text('Send Message'),
                 onPressed: () {
-                  if (_messageController.text.isNotEmpty) {
-                    socket.sendTestMessage(_messageController.text);
-                  }
+                  // if (_messageController.text.isNotEmpty) {
+                  //   socket.sendTestMessage(_messageController.text);
+                  // }
                 },
               ),
               const SizedBox(width: 8),
@@ -957,10 +956,10 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
                       (value) => setState(() => _burstCount = value.round()),
                 ),
               ),
-              ElevatedButton(
-                onPressed: () => socket.sendBurstMessages(_burstCount),
-                child: const Text('Send Burst'),
-              ),
+              // ElevatedButton(
+              //   onPressed: () => socket.sendBurstMessages(_burstCount),
+              //   child: const Text('Send Burst'),
+              // ),
             ],
           ),
 
