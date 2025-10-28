@@ -208,15 +208,15 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
             SizedBox(height: 8),
             Text(
               'Server: ${socket.io.uri}',
-              style: const TextStyle(fontSize: 14, color: Colors.white),
+              style: const TextStyle(fontSize: 14),
             ),
             Text(
               'Transports: ${socket.io.options?['transports']?.join(', ')}',
-              style: const TextStyle(fontSize: 14, color: Colors.white),
+              style: const TextStyle(fontSize: 14),
             ),
             Text(
               'Status: ${socket.connected ? "Connected 🟢" : "Disconnected 🔴"}',
-              style: const TextStyle(fontSize: 14, color: Colors.white),
+              style: const TextStyle(fontSize: 14),
             ),
             SizedBox(height: 8),
             Expanded(
