@@ -4,50 +4,50 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'socket_inspector_core.dart';
 
 class InspectableSocketIO {
-  final String uri;
-  final Map<String, dynamic> options;
+  // final String uri;
+  // final Map<String, dynamic> options;
   IO.Socket? _socket;
   final SocketInspectorCore inspector = SocketInspectorCore();
   final String sessionId = DateTime.now().millisecondsSinceEpoch.toString();
   DateTime? _lastPingTime;
   final Map<String, DateTime> _pendingRequests = {};
 
-  InspectableSocketIO(this.uri, {this.options = const {}});
+  // InspectableSocketIO(this.uri, {this.options = const {}});
 
-  void connectToSocket() {
-    try {
-      _socket = IO.io(
-        uri,
-        IO.OptionBuilder()
-            .setTransports(['websocket'])
-            .disableAutoConnect()
-            .build(),
-      );
+  void startListening() {
+    // try {
+    //   _socket = IO.io(
+    //     uri,
+    //     IO.OptionBuilder()
+    //         .setTransports(['websocket'])
+    //         .disableAutoConnect()
+    //         .build(),
+    //   );
 
-      _socket?.connect();
+    //   _socket?.connect();
 
-      // Track connection attempt
-      inspector.log(
-        SocketEvent(
-          type: SocketEventType.connectionAttempt,
-          data: {'uri': uri, 'options': options},
-          sessionId: sessionId,
-        ),
-      );
-    } on Exception catch (e) {
-      inspector.log(
-        SocketEvent(
-          type: SocketEventType.error,
-          data: {'error': e.toString(), 'context': 'connection_setup'},
-          severity: EventSeverity.error,
-          metrics: SocketEventMetrics(
-            errorCode: 'CONNECTION_SETUP_ERROR',
-            errorMessage: e.toString(),
-          ),
-          sessionId: sessionId,
-        ),
-      );
-    }
+    //   // Track connection attempt
+    //   inspector.log(
+    //     SocketEvent(
+    //       type: SocketEventType.connectionAttempt,
+    //       data: {'uri': uri, 'options': options},
+    //       sessionId: sessionId,
+    //     ),
+    //   );
+    // } on Exception catch (e) {
+    //   inspector.log(
+    //     SocketEvent(
+    //       type: SocketEventType.error,
+    //       data: {'error': e.toString(), 'context': 'connection_setup'},
+    //       severity: EventSeverity.error,
+    //       metrics: SocketEventMetrics(
+    //         errorCode: 'CONNECTION_SETUP_ERROR',
+    //         errorMessage: e.toString(),
+    //       ),
+    //       sessionId: sessionId,
+    //     ),
+    //   );
+    // }
 
     // Connection events
     _socket?.onConnect((data) {
