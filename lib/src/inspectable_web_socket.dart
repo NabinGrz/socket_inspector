@@ -6,14 +6,15 @@ import 'socket_inspector_core.dart';
 class InspectableSocketIO {
   // final String uri;
   // final Map<String, dynamic> options;
-  IO.Socket? _socket;
+  final IO.Socket? socket;
   final SocketInspectorCore inspector = SocketInspectorCore();
   final String sessionId = DateTime.now().millisecondsSinceEpoch.toString();
   DateTime? _lastPingTime;
   final Map<String, DateTime> _pendingRequests = {};
 
-  // InspectableSocketIO(this.uri, {this.options = const {}});
+  InspectableSocketIO(this.socket);
 
+  IO.Socket? get _socket => socket;
   void startListening() {
     // try {
     //   _socket = IO.io(
