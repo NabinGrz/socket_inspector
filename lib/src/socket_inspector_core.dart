@@ -3,8 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:path_provider/path_provider.dart';
-import 'package:socket_inspector/src/socket_event.dart';
-import 'package:socket_inspector/src/socket_filter.dart';
+import 'package:socket_inspector/socket_inspector.dart';
 
 class SocketSession {
   final String id;
@@ -242,7 +241,7 @@ class SocketInspectorCore {
       final updatedEvent = SocketEvent(
         type: event.type,
         eventName: event.eventName,
-        data: event.data,
+        payload: event.payload,
         severity: event.severity,
         metrics: SocketEventMetrics(
           latencyMs: latency,

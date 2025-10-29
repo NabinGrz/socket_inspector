@@ -20,8 +20,8 @@ class SocketInspectorScreen extends StatefulWidget {
 
 class _SocketInspectorScreenState extends State<SocketInspectorScreen>
     with TickerProviderStateMixin {
-  final SocketInspectorCore inspector = SocketInspectorCore();
-  // late InspectableSocketIO socket;
+  final SocketInspectorCore inspectorCore = SocketInspectorCore();
+
   late TabController _tabController;
   bool _useRegex = false;
   final _searchController = TextEditingController();
@@ -35,23 +35,11 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
   final _messageController = TextEditingController();
   int _burstCount = 10;
 
-  // void _initializeSocket() {
-  //   socket = InspectableSocketIO(
-  //     _uriController.text,
-  //     options: {
-  //       'transports': ['websocket'],
-  //       'autoConnect': false,
-  //     },
-  //   );
-  //   socket.connect();
-  //   // testAutomation = SocketTestAutomation(socket);
-  // }
-
   IO.Socket get socket => widget.socket;
   @override
   void initState() {
     _tabController = TabController(length: 5, vsync: this);
-    // _initializeSocket();
+
     super.initState();
   }
 
@@ -61,11 +49,11 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
       String fileName;
 
       if (format == 'json') {
-        content = await inspector.exportToJson();
+        content = await inspectorCore.exportToJson();
         fileName =
             'socket_inspector_${DateTime.now().millisecondsSinceEpoch}.json';
       } else {
-        content = await inspector.exportToCsv();
+        content = await inspectorCore.exportToCsv();
         fileName =
             'socket_inspector_${DateTime.now().millisecondsSinceEpoch}.csv';
       }
@@ -100,8 +88,7 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
     _eventNameController.dispose();
     _uriController.dispose();
     _messageController.dispose();
-    // testAutomation.dispose();
-    inspector.endCurrentSession();
+    inspectorCore.endCurrentSession();
     socket.disconnect();
     super.dispose();
   }
@@ -121,26 +108,8 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
             Tab(icon: Icon(Icons.settings), text: 'Controls'),
           ],
         ),
-        // actions: [
-        //   IconButton(
-        //     icon: const Icon(Icons.add),
-        //     onPressed:
-        //         () => socket.emitWithAck('chat message', {'data': dataToEmit}),
-        //   ),
-        //   IconButton(
-        //     icon: const Icon(Icons.delete),
-        //     onPressed: () {
-        //       inspector.clear();
-        //       setState(() {});
-        //     },
-        //   ),
-        // ],
       ),
 
-      // floatingActionButton: FloatingActionButton(
-      //   child: const Icon(Icons.link_off),
-      //   onPressed: () => socket.disconnect(),
-      // ),
       body: TabBarView(
         controller: _tabController,
         children: [
@@ -149,37 +118,8 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
           _buildAnalyticsTab(),
           _buildAnalyticsTab(),
           _buildControlsTab(),
-          // _buildTestsTab(),
-          // _buildControlsTab(),
         ],
       ),
-      // body: StreamBuilder<SocketEvent>(
-      //   stream: inspector.stream,
-      //   builder: (context, _) {
-      //     final events = inspector.history.reversed.toList();
-      //     return ListView.builder(
-      //       itemCount: events.length,
-      //       itemBuilder: (context, index) {
-      //         final e = events[index];
-      //         return Card(
-      //           margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-      //           child: ListTile(
-      //             leading: Icon(
-      //               _iconForType(e.type),
-      //               color: _colorForType(e.type),
-      //             ),
-      //             title: Text("event -> ${e.eventName ?? e.type.name}"),
-      //             subtitle: Text("data: ${_formatData(e.data)}"),
-      //             trailing: Text(
-      //               "${e.timestamp.hour}:${e.timestamp.minute}:${e.timestamp.second}",
-      //               style: const TextStyle(fontSize: 12),
-      //             ),
-      //           ),
-      //         );
-      //       },
-      //     );
-      //   },
-      // ),
     );
   }
 
@@ -194,13 +134,9 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
 
   Widget _buildEventsTab() {
     return StreamBuilder<SocketEvent>(
-      stream: inspector.stream,
+      stream: inspectorCore.stream,
       builder: (context, _) {
-        final events = inspector.filteredHistory.reversed.toList();
-
-        if (events.isEmpty) {
-          return const Center(child: Text('No events to display'));
-        }
+        final events = inspectorCore.filteredHistory.reversed.toList();
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -208,26 +144,30 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
             SizedBox(height: 8),
             Text(
               'Server: ${socket.io.uri}',
-              style: const TextStyle(fontSize: 14),
+              style: const TextStyle(fontSize: 14, color: Colors.white),
             ),
             Text(
               'Transports: ${socket.io.options?['transports']?.join(', ')}',
-              style: const TextStyle(fontSize: 14),
+              style: const TextStyle(fontSize: 14, color: Colors.white),
             ),
             Text(
               'Status: ${socket.connected ? "Connected 🟢" : "Disconnected 🔴"}',
-              style: const TextStyle(fontSize: 14),
+              style: const TextStyle(fontSize: 14, color: Colors.white),
             ),
             SizedBox(height: 8),
-            Expanded(
-              child: ListView.builder(
-                itemCount: events.length,
-                itemBuilder: (context, index) {
-                  final event = events[index];
-                  return _buildEventCard(event);
-                },
-              ),
-            ),
+            events.isEmpty
+                ? Center(child: Text('No events to display'))
+                : Expanded(
+                  child: ListView.separated(
+                    itemCount: events.length,
+                    separatorBuilder:
+                        (context, index) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final event = events[index];
+                      return _buildEventCard(event);
+                    },
+                  ),
+                ),
           ],
         );
       },
@@ -235,58 +175,96 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
   }
 
   Widget _buildEventCard(SocketEvent event) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-      // color: _getEventBackgroundColor(event),
-      child: ExpansionTile(
-        leading: Icon(
-          _iconForType(event.type),
-          color: _colorForType(event.type),
-        ),
-        title: Row(
-          children: [
-            Expanded(
-              child: Text(
-                "event: ${event.eventName ?? event.type.name}",
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            if (event.metrics.latencyMs != null)
-              Chip(
-                label: Text('${event.metrics.latencyMs}ms'),
-                backgroundColor: _getLatencyColor(event.metrics.latencyMs!),
-              ),
-          ],
-        ),
-        subtitle: Row(
-          children: [
-            Text(event.formattedTimestamp),
-            const SizedBox(width: 8),
-            Text('${event.dataSizeBytes} bytes'),
-            const SizedBox(width: 8),
-            Text(event.severity.name.toUpperCase()),
-          ],
-        ),
+    return ExpansionTile(
+      leading: Icon(_iconForType(event.type), color: _colorForType(event.type)),
+      title: Row(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildInfoRow('Event ID:', event.id),
-                _buildInfoRow('Session ID:', event.sessionId ?? 'N/A'),
-                if (event.metrics.errorCode != null)
-                  _buildInfoRow('Error Code:', event.metrics.errorCode!),
-                if (event.metrics.errorMessage != null)
-                  _buildInfoRow('Error Message:', event.metrics.errorMessage!),
-                if (event.metrics.retryCount != null)
-                  _buildInfoRow(
-                    'Retry Count:',
-                    event.metrics.retryCount.toString(),
+          Expanded(
+            child: Text(
+              "event: ${event.eventName ?? event.type.name}",
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          if (event.metrics.latencyMs != null)
+            Chip(
+              label: Text('${event.metrics.latencyMs}ms'),
+              backgroundColor: _getLatencyColor(event.metrics.latencyMs!),
+            ),
+        ],
+      ),
+      subtitle: Row(
+        children: [
+          Text(event.formattedTimestamp),
+          const SizedBox(width: 8),
+          Text('${event.dataSizeBytes} bytes'),
+          const SizedBox(width: 8),
+          Text(event.severity.name.toUpperCase()),
+        ],
+      ),
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildInfoRow('Event ID:', event.id),
+              _buildInfoRow('Session ID:', event.sessionId ?? 'N/A'),
+              if (event.metrics.errorCode != null)
+                _buildInfoRow('Error Code:', event.metrics.errorCode!),
+              if (event.metrics.errorMessage != null)
+                _buildInfoRow('Error Message:', event.metrics.errorMessage!),
+              if (event.metrics.retryCount != null)
+                _buildInfoRow(
+                  'Retry Count:',
+                  event.metrics.retryCount.toString(),
+                ),
+              const SizedBox(height: 8),
+              Text(
+                event.type == SocketEventType.messageSent
+                    ? 'Payload:'
+                    : 'Response:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: SelectableText(
+                  event.formattedPayload.isEmpty
+                      ? 'No data'
+                      : event.formattedPayload,
+                  style: const TextStyle(fontFamily: 'monospace'),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.copy),
+                    label: const Text('Copy Payload'),
+                    onPressed: () {
+                      Clipboard.setData(
+                        ClipboardData(text: event.formattedPayload),
+                      );
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Copied to clipboard')),
+                      );
+                    },
                   ),
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.replay),
+                    label: const Text('Replay'),
+                    onPressed: () => _replayEvent(event),
+                  ),
+                ],
+              ),
+              if (event.type == SocketEventType.messageSent) ...{
                 const SizedBox(height: 8),
                 const Text(
-                  'Data:',
+                  'Response:',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 Container(
@@ -296,40 +274,30 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: SelectableText(
-                    event.formattedData.isEmpty
+                    event.formattedResponse.isEmpty
                         ? 'No data'
-                        : event.formattedData,
+                        : event.formattedResponse,
                     style: const TextStyle(fontFamily: 'monospace'),
                   ),
                 ),
                 const SizedBox(height: 8),
-                Row(
-                  children: [
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.copy),
-                      label: const Text('Copy'),
-                      onPressed: () {
-                        Clipboard.setData(
-                          ClipboardData(text: event.formattedData),
-                        );
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Copied to clipboard')),
-                        );
-                      },
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.replay),
-                      label: const Text('Replay'),
-                      onPressed: () => _replayEvent(event),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+              },
+              ElevatedButton.icon(
+                icon: const Icon(Icons.copy),
+                label: const Text('Copy Response'),
+                onPressed: () {
+                  Clipboard.setData(
+                    ClipboardData(text: event.formattedResponse),
+                  );
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Copied to clipboard')),
+                  );
+                },
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -343,7 +311,7 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
           _eventNameController.text.isEmpty ? null : _eventNameController.text,
       useRegex: _useRegex,
     );
-    inspector.updateFilter(filter);
+    inspectorCore.updateFilter(filter);
     setState(() {});
   }
 
@@ -373,12 +341,11 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Active Filters: ${inspector.filter.hasActiveFilters ? "Yes" : "None"}',
+            'Active Filters: ${inspectorCore.filter.hasActiveFilters ? "Yes" : "None"}',
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 16),
 
-          // Search filters
           TextField(
             controller: _searchController,
             decoration: InputDecoration(
@@ -408,7 +375,6 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
           ),
           const SizedBox(height: 16),
 
-          // Event type filters
           Text('Event Types:', style: Theme.of(context).textTheme.titleSmall),
           Wrap(
             children:
@@ -431,7 +397,6 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
           ),
           const SizedBox(height: 16),
 
-          // Severity filters
           Text('Severities:', style: Theme.of(context).textTheme.titleSmall),
           Wrap(
             children:
@@ -477,7 +442,7 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
   }
 
   Widget _buildAnalyticsTab() {
-    final stats = inspector.stats;
+    final stats = inspectorCore.stats;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -547,353 +512,12 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
     );
   }
 
-  // Widget _buildTestsTab() {
-  //   return Padding(
-  //     padding: const EdgeInsets.all(16),
-  //     child: Column(
-  //       crossAxisAlignment: CrossAxisAlignment.start,
-  //       children: [
-  //         Text(
-  //           'Test Automation',
-  //           style: Theme.of(context).textTheme.titleLarge,
-  //         ),
-  //         const SizedBox(height: 16),
-
-  //         // Predefined test buttons
-  //         Text('Quick Tests', style: Theme.of(context).textTheme.titleMedium),
-  //         const SizedBox(height: 8),
-  //         Wrap(
-  //           spacing: 8,
-  //           children: [
-  //             ElevatedButton(
-  //               onPressed: () => _runQuickTest('connection'),
-  //               child: const Text('Connection Test'),
-  //             ),
-  //             ElevatedButton(
-  //               onPressed: () => _runQuickTest('message'),
-  //               child: const Text('Message Test'),
-  //             ),
-  //             ElevatedButton(
-  //               onPressed: () => _runQuickTest('load'),
-  //               child: const Text('Load Test'),
-  //             ),
-  //             ElevatedButton(
-  //               onPressed: () => _runQuickTest('error_recovery'),
-  //               child: const Text('Error Recovery'),
-  //             ),
-  //           ],
-  //         ),
-
-  //         const SizedBox(height: 24),
-  //         Text('Test Results', style: Theme.of(context).textTheme.titleMedium),
-  //         const SizedBox(height: 8),
-
-  //         Expanded(
-  //           child: StreamBuilder<TestCase>(
-  //             stream: testAutomation.testUpdates,
-  //             builder: (context, snapshot) {
-  //               final testCases = testAutomation.testCases;
-
-  //               if (testCases.isEmpty) {
-  //                 return const Center(
-  //                   child: Text(
-  //                     'No tests run yet. Click a quick test button to start.',
-  //                   ),
-  //                 );
-  //               }
-
-  //               return ListView.builder(
-  //                 itemCount: testCases.length,
-  //                 itemBuilder: (context, index) {
-  //                   final testCase = testCases[index];
-  //                   return _buildTestCaseCard(testCase);
-  //                 },
-  //               );
-  //             },
-  //           ),
-  //         ),
-
-  //         const SizedBox(height: 16),
-  //         Row(
-  //           children: [
-  //             ElevatedButton.icon(
-  //               icon: const Icon(Icons.play_arrow),
-  //               label: const Text('Run All Tests'),
-  //               onPressed: _runAllTests,
-  //             ),
-  //             const SizedBox(width: 8),
-  //             // ElevatedButton.icon(
-  //             //   icon: const Icon(Icons.stop),
-  //             //   label: const Text('Cancel Current'),
-  //             //   onPressed: testAutomation.cancelCurrentTest,
-  //             // ),
-  //             // const SizedBox(width: 8),
-  //             // ElevatedButton.icon(
-  //             //   icon: const Icon(Icons.analytics),
-  //             //   label: const Text('Generate Report'),
-  //             //   onPressed: _generateTestReport,
-  //             // ),
-  //           ],
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
-
-  // Widget _buildTestCaseCard(TestCase testCase) {
-  //   Color statusColor;
-  //   IconData statusIcon;
-
-  //   switch (testCase.status) {
-  //     case TestStatus.pending:
-  //       statusColor = Colors.grey;
-  //       statusIcon = Icons.schedule;
-  //       break;
-  //     case TestStatus.running:
-  //       statusColor = Colors.blue;
-  //       statusIcon = Icons.play_arrow;
-  //       break;
-  //     case TestStatus.passed:
-  //       statusColor = Colors.green;
-  //       statusIcon = Icons.check_circle;
-  //       break;
-  //     case TestStatus.failed:
-  //       statusColor = Colors.red;
-  //       statusIcon = Icons.error;
-  //       break;
-  //     case TestStatus.cancelled:
-  //       statusColor = Colors.orange;
-  //       statusIcon = Icons.cancel;
-  //       break;
-  //   }
-
-  //   return Card(
-  //     margin: const EdgeInsets.symmetric(vertical: 4),
-  //     child: ExpansionTile(
-  //       leading: Icon(statusIcon, color: statusColor),
-  //       title: Text(testCase.name),
-  //       subtitle: Column(
-  //         crossAxisAlignment: CrossAxisAlignment.start,
-  //         children: [
-  //           Text(testCase.description),
-  //           Text(
-  //             'Status: ${testCase.status.name} ${testCase.executionTime != null ? "(${testCase.executionTime!.inMilliseconds}ms)" : ""}',
-  //             style: TextStyle(color: statusColor, fontWeight: FontWeight.bold),
-  //           ),
-  //         ],
-  //       ),
-  //       children: [
-  //         Padding(
-  //           padding: const EdgeInsets.all(16),
-  //           child: Column(
-  //             crossAxisAlignment: CrossAxisAlignment.start,
-  //             children: [
-  //               if (testCase.errorMessage != null) ...[
-  //                 Text(
-  //                   'Error:',
-  //                   style: TextStyle(
-  //                     color: Colors.red,
-  //                     fontWeight: FontWeight.bold,
-  //                   ),
-  //                 ),
-  //                 Text(
-  //                   testCase.errorMessage!,
-  //                   style: TextStyle(color: Colors.red),
-  //                 ),
-  //                 const SizedBox(height: 8),
-  //               ],
-  //               Text(
-  //                 'Steps:',
-  //                 style: const TextStyle(fontWeight: FontWeight.bold),
-  //               ),
-  //               ...testCase.steps.map(
-  //                 (step) => Padding(
-  //                   padding: const EdgeInsets.only(left: 16, top: 4),
-  //                   child: Row(
-  //                     children: [
-  //                       Icon(
-  //                         step.completed ? Icons.check : Icons.schedule,
-  //                         size: 16,
-  //                         color: step.completed ? Colors.green : Colors.grey,
-  //                       ),
-  //                       const SizedBox(width: 8),
-  //                       Expanded(
-  //                         child: Text(
-  //                           '${step.action}: ${step.result ?? "Pending"}',
-  //                         ),
-  //                       ),
-  //                     ],
-  //                   ),
-  //                 ),
-  //               ),
-  //               const SizedBox(height: 8),
-  //               Text('Events Recorded: ${testCase.recordedEvents.length}'),
-  //               if (testCase.recordedEvents.isNotEmpty)
-  //                 ElevatedButton(
-  //                   onPressed: () => _showTestEventDetails(testCase),
-  //                   child: const Text('View Events'),
-  //                 ),
-  //             ],
-  //           ),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
-
-  // void _runQuickTest(String testType) async {
-  //   TestCase testCase;
-
-  //   switch (testType) {
-  //     case 'connection':
-  //       testCase = testAutomation.createConnectionTest();
-  //       break;
-  //     case 'message':
-  //       testCase = testAutomation.createMessageTest();
-  //       break;
-  //     case 'load':
-  //       testCase = testAutomation.createLoadTest();
-  //       break;
-  //     case 'error_recovery':
-  //       testCase = testAutomation.createErrorRecoveryTest();
-  //       break;
-  //     default:
-  //       return;
-  //   }
-
-  //   setState(() {});
-
-  //   try {
-  //     await testAutomation.runTestCase(testCase);
-  //     setState(() {});
-
-  //     if (mounted) {
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         SnackBar(
-  //           content: Text(
-  //             'Test "${testCase.name}" completed: ${testCase.status.name}',
-  //           ),
-  //           backgroundColor:
-  //               testCase.status == TestStatus.passed
-  //                   ? Colors.green
-  //                   : Colors.red,
-  //         ),
-  //       );
-  //     }
-  //   } catch (e) {
-  //     if (mounted) {
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         SnackBar(
-  //           content: Text('Test failed: $e'),
-  //           backgroundColor: Colors.red,
-  //         ),
-  //       );
-  //     }
-  //   }
-  // }
-
-  // void _runAllTests() async {
-  //   try {
-  //     final results = await testAutomation.runAllTests();
-  //     setState(() {});
-
-  //     final passed = results.where((t) => t.status == TestStatus.passed).length;
-  //     final total = results.length;
-
-  //     if (mounted) {
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         SnackBar(
-  //           content: Text('All tests completed: $passed/$total passed'),
-  //           backgroundColor: passed == total ? Colors.green : Colors.orange,
-  //         ),
-  //       );
-  //     }
-  //   } catch (e) {
-  //     if (mounted) {
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         SnackBar(
-  //           content: Text('Test suite failed: $e'),
-  //           backgroundColor: Colors.red,
-  //         ),
-  //       );
-  //     }
-  //   }
-  // }
-
-  // void _generateTestReport() async {
-  //   try {
-  //     final report = testAutomation.getPerformanceReport(
-  //       testAutomation.testCases,
-  //     );
-  //     final reportJson = report.toString();
-
-  //     final directory = await getTemporaryDirectory();
-  //     final file = File(
-  //       '${directory.path}/test_report_${DateTime.now().millisecondsSinceEpoch}.txt',
-  //     );
-  //     await file.writeAsString(reportJson);
-
-  //     await OpenFilex.open(file.path);
-
-  //     if (mounted) {
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         SnackBar(content: Text('Test report generated: ${file.path}')),
-  //       );
-  //     }
-  //   } catch (e) {
-  //     if (mounted) {
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         SnackBar(
-  //           content: Text('Report generation failed: $e'),
-  //           backgroundColor: Colors.red,
-  //         ),
-  //       );
-  //     }
-  //   }
-  // }
-
-  // void _showTestEventDetails(TestCase testCase) {
-  //   showDialog(
-  //     context: context,
-  //     builder:
-  //         (context) => AlertDialog(
-  //           title: Text('Events for ${testCase.name}'),
-  //           content: SizedBox(
-  //             width: double.maxFinite,
-  //             height: 400,
-  //             child: ListView.builder(
-  //               itemCount: testCase.recordedEvents.length,
-  //               itemBuilder: (context, index) {
-  //                 final event = testCase.recordedEvents[index];
-  //                 return ListTile(
-  //                   leading: Icon(_iconForType(event.type)),
-  //                   title: Text(event.eventName ?? event.type.name),
-  //                   subtitle: Text(event.formattedTimestamp),
-  //                   trailing:
-  //                       event.metrics.latencyMs != null
-  //                           ? Text('${event.metrics.latencyMs}ms')
-  //                           : null,
-  //                 );
-  //               },
-  //             ),
-  //           ),
-  //           actions: [
-  //             TextButton(
-  //               onPressed: () => Navigator.pop(context),
-  //               child: const Text('Close'),
-  //             ),
-  //           ],
-  //         ),
-  //   );
-  // }
-
   Widget _buildControlsTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Connection controls
           Text('Connection', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),
 
@@ -906,30 +530,6 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
           ),
           const SizedBox(height: 8),
 
-          // Row(
-          //   children: [
-          //     ElevatedButton.icon(
-          //       icon: Icon(_isConnected ? Icons.link_off : Icons.link),
-          //       label: Text(_isConnected ? 'Disconnect' : 'Connect'),
-          //       onPressed: () {
-          //         if (_isConnected) {
-          //           socket.disconnect();
-          //           setState(() => _isConnected = false);
-          //         } else {
-          //           // _initializeSocket();
-          //           socket.connectToSocket();
-          //           setState(() => _isConnected = true);
-          //         }
-          //       },
-          //     ),
-          //     const SizedBox(width: 8),
-          //     ElevatedButton.icon(
-          //       icon: const Icon(Icons.bug_report),
-          //       label: const Text('Simulate Error'),
-          //       onPressed: socket.simulateError,
-          //     ),
-          //   ],
-          // ),
           const SizedBox(height: 24),
           Text('Test Messages', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),
@@ -948,11 +548,7 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
               ElevatedButton.icon(
                 icon: const Icon(Icons.send),
                 label: const Text('Send Message'),
-                onPressed: () {
-                  // if (_messageController.text.isNotEmpty) {
-                  //   socket.sendTestMessage(_messageController.text);
-                  // }
-                },
+                onPressed: () {},
               ),
               const SizedBox(width: 8),
               ElevatedButton.icon(
@@ -979,10 +575,6 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
                       (value) => setState(() => _burstCount = value.round()),
                 ),
               ),
-              // ElevatedButton(
-              //   onPressed: () => socket.sendBurstMessages(_burstCount),
-              //   child: const Text('Send Burst'),
-              // ),
             ],
           ),
 
@@ -1006,7 +598,7 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
                 ElevatedButton.icon(
                   icon: const Icon(Icons.stop),
                   label: const Text('End Session'),
-                  onPressed: inspector.endCurrentSession,
+                  onPressed: inspectorCore.endCurrentSession,
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton.icon(
@@ -1021,37 +613,6 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
       ),
     );
   }
-
-  // void _showExportDialog() {
-  //   showDialog(
-  //     context: context,
-  //     builder:
-  //         (context) => AlertDialog(
-  //           title: const Text('Export Data'),
-  //           content: const Text('Choose export format:'),
-  //           actions: [
-  //             TextButton(
-  //               onPressed: () {
-  //                 Navigator.pop(context);
-  //                 _exportData('json');
-  //               },
-  //               child: const Text('JSON'),
-  //             ),
-  //             TextButton(
-  //               onPressed: () {
-  //                 Navigator.pop(context);
-  //                 _exportData('csv');
-  //               },
-  //               child: const Text('CSV'),
-  //             ),
-  //             TextButton(
-  //               onPressed: () => Navigator.pop(context),
-  //               child: const Text('Cancel'),
-  //             ),
-  //           ],
-  //         ),
-  //   );
-  // }
 
   void _showNewSessionDialog() {
     final nameController = TextEditingController();
@@ -1086,7 +647,7 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
               TextButton(
                 onPressed: () {
                   if (nameController.text.isNotEmpty) {
-                    inspector.startSession(
+                    inspectorCore.startSession(
                       nameController.text,
                       description: descController.text,
                     );
@@ -1102,9 +663,11 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
   }
 
   void _saveCurrentSession() async {
-    if (inspector.currentSession != null) {
+    if (inspectorCore.currentSession != null) {
       try {
-        final file = await inspector.saveSession(inspector.currentSession!);
+        final file = await inspectorCore.saveSession(
+          inspectorCore.currentSession!,
+        );
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Session saved to ${file.path}')),
@@ -1124,7 +687,7 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
   }
 
   void _replayEvent(SocketEvent event) async {
-    await inspector.replayEvents([event]);
+    await inspectorCore.replayEvents([event]);
     if (mounted) {
       ScaffoldMessenger.of(
         context,
@@ -1132,7 +695,6 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
     }
   }
 
-  // Helper methods for UI styling
   IconData _iconForType(SocketEventType type) {
     switch (type) {
       case SocketEventType.connect:
@@ -1163,7 +725,7 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
       case SocketEventType.connect:
         return Colors.green;
       case SocketEventType.disconnect:
-        return Colors.grey;
+        return Colors.red;
       case SocketEventType.messageSent:
         return Colors.blue;
       case SocketEventType.messageReceived:
@@ -1180,19 +742,6 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
         return Colors.lightGreen;
       case SocketEventType.pong:
         return Colors.teal;
-    }
-  }
-
-  Color _getEventBackgroundColor(SocketEvent event) {
-    switch (event.severity) {
-      case EventSeverity.info:
-        return Colors.white;
-      case EventSeverity.warning:
-        return Colors.amber.shade50;
-      case EventSeverity.error:
-        return Colors.red.shade50;
-      case EventSeverity.critical:
-        return Colors.red.shade100;
     }
   }
 

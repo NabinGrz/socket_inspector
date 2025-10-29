@@ -62,7 +62,8 @@ class SocketEvent extends Equatable {
   final String id;
   final SocketEventType type;
   final String? eventName;
-  final dynamic data;
+  final dynamic payload;
+  final dynamic response;
   final DateTime timestamp;
   final EventSeverity severity;
   final SocketEventMetrics metrics;
@@ -73,7 +74,8 @@ class SocketEvent extends Equatable {
   SocketEvent({
     required this.type,
     this.eventName,
-    this.data,
+    this.payload,
+    this.response,
     this.severity = EventSeverity.info,
     this.metrics = const SocketEventMetrics(),
     this.sessionId,
@@ -81,7 +83,7 @@ class SocketEvent extends Equatable {
     String? id,
   }) : timestamp = DateTime.now(),
        id = id ?? DateTime.now().millisecondsSinceEpoch.toString(),
-       rawData = _serializeData(data);
+       rawData = _serializeData(payload);
 
   static String? _serializeData(dynamic data) {
     if (data == null) return null;
@@ -92,12 +94,21 @@ class SocketEvent extends Equatable {
     }
   }
 
-  String get formattedData {
-    if (data == null) return '';
+  String get formattedPayload {
+    if (payload == null) return '';
     try {
-      return const JsonEncoder.withIndent('  ').convert(data);
+      return const JsonEncoder.withIndent('  ').convert(payload);
     } catch (_) {
-      return data.toString();
+      return payload.toString();
+    }
+  }
+
+  String get formattedResponse {
+    if (response == null) return '';
+    try {
+      return const JsonEncoder.withIndent('  ').convert(response);
+    } catch (_) {
+      return response.toString();
     }
   }
 
@@ -114,7 +125,8 @@ class SocketEvent extends Equatable {
     'id': id,
     'type': type.name,
     'eventName': eventName,
-    'data': data,
+    'payload': payload,
+    'response': response,
     'timestamp': timestamp.toIso8601String(),
     'severity': severity.name,
     'metrics': metrics.toJson(),
@@ -128,7 +140,8 @@ class SocketEvent extends Equatable {
     return SocketEvent(
       type: SocketEventType.values.firstWhere((e) => e.name == json['type']),
       eventName: json['eventName'],
-      data: json['data'],
+      payload: json['payload'],
+      response: json['response'],
       severity: EventSeverity.values.firstWhere(
         (e) => e.name == json['severity'],
       ),
@@ -144,7 +157,8 @@ class SocketEvent extends Equatable {
     id,
     type,
     eventName,
-    data,
+    payload,
+    response,
     timestamp,
     severity,
     metrics,
