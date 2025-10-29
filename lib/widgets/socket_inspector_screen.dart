@@ -189,7 +189,7 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
         children: [
           Expanded(
             child: Text(
-              "event: ${event.eventName ?? event.type.name}",
+              "event: ${event.eventName ?? event.type.name}.  ${event.from}",
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),

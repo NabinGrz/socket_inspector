@@ -22,6 +22,7 @@ class InspectableSocketIO {
           payload: data,
           severity: EventSeverity.info,
           sessionId: sessionId,
+          from: "onConnect",
         ),
       );
       print("Socket Connection Status: ${socket?.connected}");
@@ -34,6 +35,7 @@ class InspectableSocketIO {
           payload: data,
           severity: EventSeverity.warning,
           sessionId: sessionId,
+          from: "onDisconnect",
         ),
       );
     });
@@ -48,6 +50,7 @@ class InspectableSocketIO {
             retryCount: data is Map ? data['attempt'] : null,
           ),
           sessionId: sessionId,
+          from: "onReconnect",
         ),
       );
       print("Reconnected: $data");
@@ -64,6 +67,7 @@ class InspectableSocketIO {
             errorMessage: err.toString(),
           ),
           sessionId: sessionId,
+          from: "onError",
         ),
         "onError",
       );
@@ -78,6 +82,7 @@ class InspectableSocketIO {
           type: SocketEventType.ping,
           payload: data,
           sessionId: sessionId,
+          from: "onPing",
         ),
         "onPing",
       );
@@ -96,6 +101,7 @@ class InspectableSocketIO {
           payload: data,
           metrics: SocketEventMetrics(latencyMs: latency),
           sessionId: sessionId,
+          from: "onPong",
         ),
       );
     });
@@ -127,6 +133,7 @@ class InspectableSocketIO {
             dataSizeBytes: _calculateDataSize(data),
           ),
           sessionId: sessionId,
+          from: "onAny",
         ),
       );
     });
@@ -145,6 +152,7 @@ class InspectableSocketIO {
         severity: EventSeverity.info,
         metrics: SocketEventMetrics(dataSizeBytes: _calculateDataSize(data)),
         sessionId: sessionId,
+        from: "emit",
       ),
     );
   }
@@ -169,6 +177,7 @@ class InspectableSocketIO {
               dataSizeBytes: _calculateDataSize(response),
             ),
             sessionId: sessionId,
+            from: "emitWithAckAsync",
           ),
         );
 
@@ -198,6 +207,7 @@ class InspectableSocketIO {
           severity: EventSeverity.info,
           metrics: SocketEventMetrics(dataSizeBytes: _calculateDataSize(data)),
           sessionId: sessionId,
+          from: "on",
         ),
       );
       handler(data);
@@ -212,6 +222,7 @@ class InspectableSocketIO {
         payload: {'manual': true},
         severity: EventSeverity.info,
         sessionId: sessionId,
+        from: "disconnect",
       ),
     );
   }
@@ -257,6 +268,7 @@ class InspectableSocketIO {
           errorMessage: 'This is a simulated error for testing purposes',
         ),
         sessionId: sessionId,
+        from: "simulateError",
       ),
     );
   }

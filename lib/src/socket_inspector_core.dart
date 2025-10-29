@@ -254,6 +254,7 @@ class SocketInspectorCore {
         sessionId: event.sessionId,
         headers: event.headers,
         id: event.id,
+        from: "trackLatency",
       );
 
       _events[eventIndex] = updatedEvent;

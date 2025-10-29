@@ -61,6 +61,7 @@ class SocketEventMetrics {
 class SocketEvent extends Equatable {
   final String id;
   final SocketEventType type;
+  final String from;
   final String? eventName;
   final dynamic payload;
   final dynamic response;
@@ -73,6 +74,7 @@ class SocketEvent extends Equatable {
 
   SocketEvent({
     required this.type,
+    required this.from,
     this.eventName,
     this.payload,
     this.response,
@@ -124,6 +126,7 @@ class SocketEvent extends Equatable {
   Map<String, dynamic> toJson() => {
     'id': id,
     'type': type.name,
+    'from': from,
     'eventName': eventName,
     'payload': payload,
     'response': response,
@@ -141,6 +144,7 @@ class SocketEvent extends Equatable {
       type: SocketEventType.values.firstWhere((e) => e.name == json['type']),
       eventName: json['eventName'],
       payload: json['payload'],
+      from: json['from'],
       response: json['response'],
       severity: EventSeverity.values.firstWhere(
         (e) => e.name == json['severity'],
@@ -157,6 +161,7 @@ class SocketEvent extends Equatable {
     id,
     type,
     eventName,
+    from,
     payload,
     response,
     timestamp,
