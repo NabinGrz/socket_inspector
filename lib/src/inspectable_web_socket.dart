@@ -1,9 +1,7 @@
 import 'dart:async';
 
-import 'package:socket_inspector/src/socket_event.dart';
+import 'package:socket_inspector/socket_inspector.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
-
-import 'socket_inspector_core.dart';
 
 class InspectableSocketIO {
   IO.Socket? socket;
@@ -13,137 +11,195 @@ class InspectableSocketIO {
   final Map<String, DateTime> _pendingRequests = {};
 
   InspectableSocketIO(this.socket) {
-    startListening();
+    // startListening();
   }
 
   void startListening() {
-    socket?.onConnect((data) {
-      inspector.log(
-        SocketEvent(
-          type: SocketEventType.connect,
-          payload: data,
-          severity: EventSeverity.info,
-          sessionId: sessionId,
-          from: "onConnect",
-        ),
-        "onConnect",
-      );
-      print("Socket Connection Status: ${socket?.connected}");
-    });
-
-    socket?.onDisconnect((data) {
-      inspector.log(
-        SocketEvent(
-          type: SocketEventType.disconnect,
-          payload: data,
-          severity: EventSeverity.warning,
-          sessionId: sessionId,
-          from: "onDisconnect",
-        ),
-        "onDisconnect",
-      );
-    });
-
-    socket?.onReconnect((data) {
-      inspector.log(
-        SocketEvent(
-          type: SocketEventType.reconnect,
-          payload: data,
-          severity: EventSeverity.info,
-          metrics: SocketEventMetrics(
-            retryCount: data is Map ? data['attempt'] : null,
+    print("Starting to listen to socket events");
+    try {
+      socket?.onConnect((data) {
+        inspector.log(
+          SocketEvent(
+            type: SocketEventType.connect,
+            payload: data,
+            severity: EventSeverity.info,
+            sessionId: sessionId,
+            from: "onConnect",
           ),
-          sessionId: sessionId,
-          from: "onReconnect",
-        ),
-        "onReconnect",
-      );
-      print("Reconnected: $data");
-    });
+          "onConnect",
+        );
+        print("Socket Connection Status: ${socket?.connected}");
+      });
 
-    socket?.onError((err) {
-      inspector.log(
-        SocketEvent(
-          type: SocketEventType.error,
-          payload: err,
-          severity: EventSeverity.error,
-          metrics: SocketEventMetrics(
-            errorCode: 'SOCKET_ERROR',
-            errorMessage: err.toString(),
+      socket?.onDisconnect((data) {
+        inspector.log(
+          SocketEvent(
+            type: SocketEventType.disconnect,
+            payload: data,
+            severity: EventSeverity.warning,
+            sessionId: sessionId,
+            from: "onDisconnect",
           ),
-          sessionId: sessionId,
-          from: "onError",
-        ),
-        "onError",
-      );
-      print("Error: $err");
-    });
+          "onDisconnect",
+        );
+      });
 
-    // Add ping/pong monitoring
-    socket?.on('ping', (data) {
-      _lastPingTime = DateTime.now();
-      inspector.log(
-        SocketEvent(
-          type: SocketEventType.ping,
-          payload: data,
-          sessionId: sessionId,
-          from: "onPing",
-        ),
-        "onPing",
-      );
-    });
+      socket?.onReconnect((data) {
+        inspector.log(
+          SocketEvent(
+            type: SocketEventType.reconnect,
+            payload: data,
+            severity: EventSeverity.info,
+            metrics: SocketEventMetrics(
+              retryCount: data is Map ? data['attempt'] : null,
+            ),
+            sessionId: sessionId,
+            from: "onReconnect",
+          ),
+          "onReconnect",
+        );
+        print("Reconnected: $data");
+      });
 
-    socket?.on('pong', (data) {
-      final pongTime = DateTime.now();
-      int? latency;
-      if (_lastPingTime != null) {
-        latency = pongTime.difference(_lastPingTime!).inMilliseconds;
-      }
+      socket?.onError((err) {
+        inspector.log(
+          SocketEvent(
+            type: SocketEventType.error,
+            payload: err,
+            severity: EventSeverity.error,
+            metrics: SocketEventMetrics(
+              errorCode: 'SOCKET_ERROR',
+              errorMessage: err.toString(),
+            ),
+            sessionId: sessionId,
+            from: "onError",
+          ),
+          "onError",
+        );
+        print("Error: $err");
+      });
 
-      inspector.log(
-        SocketEvent(
-          type: SocketEventType.pong,
-          payload: data,
-          metrics: SocketEventMetrics(latencyMs: latency),
-          sessionId: sessionId,
-          from: "onPong",
-        ),
-        "onPong",
-      );
-    });
+      // Add ping/pong monitoring
+      socket?.on('ping', (data) {
+        _lastPingTime = DateTime.now();
+        inspector.log(
+          SocketEvent(
+            type: SocketEventType.ping,
+            payload: data,
+            sessionId: sessionId,
+            from: "onPing",
+          ),
+          "onPing",
+        );
+      });
 
-    // // Catch all incoming messages
-    socket?.onAny((event, data) {
-      print(" ################ Received event: $event with data: $data");
-
-      // Check if this is a response to a tracked request
-      String? requestId =
-          _pendingRequests.keys.where((id) => event.contains(id)).firstOrNull;
-
-      int? latency;
-      if (requestId != null) {
-        final requestTime = _pendingRequests.remove(requestId);
-        if (requestTime != null) {
-          latency = DateTime.now().difference(requestTime).inMilliseconds;
+      socket?.on('pong', (data) {
+        final pongTime = DateTime.now();
+        int? latency;
+        if (_lastPingTime != null) {
+          latency = pongTime.difference(_lastPingTime!).inMilliseconds;
         }
-      }
 
-      inspector.log(
-        SocketEvent(
-          type: SocketEventType.messageReceived,
-          eventName: event,
-          payload: data,
-          severity: EventSeverity.info,
-          metrics: SocketEventMetrics(
-            latencyMs: latency,
-            dataSizeBytes: _calculateDataSize(data),
+        inspector.log(
+          SocketEvent(
+            type: SocketEventType.pong,
+            payload: data,
+            metrics: SocketEventMetrics(latencyMs: latency),
+            sessionId: sessionId,
+            from: "onPong",
           ),
-          sessionId: sessionId,
-          from: "onAny",
-        ),
-        "onAny",
-      );
-    });
+          "onPong",
+        );
+      });
+
+      // socket?.onAny((event, [data]) {
+      //   print(
+      //     " ################ ON ANY Received event: $event with data: $data",
+      //   );
+      //   inspector.log(
+      //     SocketEvent(
+      //       type: SocketEventType.messageReceived,
+      //       eventName: event,
+      //       payload: data,
+      //       severity: EventSeverity.info,
+      //       metrics: SocketEventMetrics(
+      //         dataSizeBytes: _calculateDataSize(data),
+      //       ),
+      //       sessionId: sessionId,
+      //       from: "onAny",
+      //     ),
+      //     "onAny",
+      //   );
+      // });
+      // socket?.on("privateMessage", (data) {
+      //   print(" ################ ON Received privateMessage: $data");
+      //   // inspector.log(
+      //   //   SocketEvent(
+      //   //     type: SocketEventType.messageReceived,
+      //   //     eventName: "statusUpdate",
+      //   //     payload: data,
+      //   //     severity: EventSeverity.info,
+      //   //     metrics: SocketEventMetrics(
+      //   //       dataSizeBytes: _calculateDataSize(data),
+      //   //     ),
+      //   //     sessionId: sessionId,
+      //   //     from: "onStatusUpdate",
+      //   //   ),
+      //   //   "onStatusUpdate",
+      //   // );
+      // });
+      // socket?.on("statusUpdate", (data) {
+      //   print(" ################ ON Received statusUpdate: $data");
+      //   // inspector.log(
+      //   //   SocketEvent(
+      //   //     type: SocketEventType.messageReceived,
+      //   //     eventName: "statusUpdate",
+      //   //     payload: data,
+      //   //     severity: EventSeverity.info,
+      //   //     metrics: SocketEventMetrics(
+      //   //       dataSizeBytes: _calculateDataSize(data),
+      //   //     ),
+      //   //     sessionId: sessionId,
+      //   //     from: "onStatusUpdate",
+      //   //   ),
+      //   //   "onStatusUpdate",
+      //   // );
+      // });
+
+      socket?.onAny((event, [data]) {
+        print(" ################ Received event: $event with data: $data");
+
+        // Check if this is a response to a tracked request
+        String? requestId =
+            _pendingRequests.keys.where((id) => event.contains(id)).firstOrNull;
+
+        int? latency;
+        if (requestId != null) {
+          final requestTime = _pendingRequests.remove(requestId);
+          if (requestTime != null) {
+            latency = DateTime.now().difference(requestTime).inMilliseconds;
+          }
+        }
+
+        inspector.log(
+          SocketEvent(
+            type: SocketEventType.messageReceived,
+            eventName: event,
+            payload: data,
+            severity: EventSeverity.info,
+            metrics: SocketEventMetrics(
+              latencyMs: latency,
+              dataSizeBytes: _calculateDataSize(data),
+            ),
+            sessionId: sessionId,
+            from: "onAny",
+          ),
+          "onAny",
+        );
+      });
+    } on Exception catch (e) {
+      print(e);
+    }
   }
 
   void emit(String event, dynamic data) {
@@ -206,23 +262,23 @@ class InspectableSocketIO {
     );
   }
 
-  void on(String event, Function(dynamic) handler) {
-    socket?.on(event, (data) {
-      inspector.log(
-        SocketEvent(
-          type: SocketEventType.messageReceived,
-          eventName: event,
-          payload: data,
-          severity: EventSeverity.info,
-          metrics: SocketEventMetrics(dataSizeBytes: _calculateDataSize(data)),
-          sessionId: sessionId,
-          from: "on",
-        ),
-        "on",
-      );
-      handler(data);
-    });
-  }
+  // void on(String event, Function(dynamic) handler) {
+  //   socket?.on(event, (data) {
+  //     inspector.log(
+  //       SocketEvent(
+  //         type: SocketEventType.messageReceived,
+  //         eventName: event,
+  //         payload: data,
+  //         severity: EventSeverity.info,
+  //         metrics: SocketEventMetrics(dataSizeBytes: _calculateDataSize(data)),
+  //         sessionId: sessionId,
+  //         from: "on",
+  //       ),
+  //       "on",
+  //     );
+  //     handler(data);
+  //   });
+  // }
 
   void disconnect() {
     socket?.disconnect();
