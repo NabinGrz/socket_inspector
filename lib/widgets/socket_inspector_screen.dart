@@ -107,6 +107,15 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
             Tab(icon: Icon(Icons.settings), text: 'Controls'),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete),
+            onPressed: () {
+              inspectorCore.clear();
+              setState(() {});
+            },
+          ),
+        ],
       ),
 
       body: TabBarView(
