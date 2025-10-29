@@ -1,7 +1,9 @@
 import 'dart:async';
 
-import 'package:socket_inspector/socket_inspector.dart';
+import 'package:socket_inspector/src/socket_event.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
+
+import 'socket_inspector_core.dart';
 
 class InspectableSocketIO {
   IO.Socket? socket;

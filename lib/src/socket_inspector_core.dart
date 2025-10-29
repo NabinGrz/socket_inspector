@@ -3,7 +3,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:path_provider/path_provider.dart';
-import 'package:socket_inspector/socket_inspector.dart';
+import 'package:socket_inspector/src/socket_event.dart';
+import 'package:socket_inspector/src/socket_filter.dart';
 
 class SocketSession {
   final String id;

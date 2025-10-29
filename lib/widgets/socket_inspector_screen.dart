@@ -7,8 +7,9 @@ import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:socket_inspector/src/socket_event.dart';
 import 'package:socket_inspector/src/socket_filter.dart';
-import 'package:socket_inspector/src/socket_inspector_core.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
+
+import '../src/socket_inspector_core.dart';
 
 class SocketInspectorScreen extends StatefulWidget {
   final IO.Socket socket;
@@ -28,9 +29,7 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
   final _eventNameController = TextEditingController();
   final Set<SocketEventType> _selectedTypes = {};
   final Set<EventSeverity> _selectedSeverities = {};
-  final _uriController = TextEditingController(
-    text: 'http://192.168.110.80:3000',
-  );
+  final _uriController = TextEditingController();
   final bool _isConnected = false;
   final _messageController = TextEditingController();
   int _burstCount = 10;
@@ -40,6 +39,7 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
   void initState() {
     _tabController = TabController(length: 5, vsync: this);
 
+    _uriController.text = socket.io.uri;
     super.initState();
   }
 
@@ -88,6 +88,7 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
     _eventNameController.dispose();
     _uriController.dispose();
     _messageController.dispose();
+
     inspectorCore.endCurrentSession();
     super.dispose();
   }
@@ -108,6 +109,24 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
           ],
         ),
         actions: [
+          // IconButton(
+          //   icon: const Icon(Icons.add),
+          //   onPressed: () async {
+          //     inspectableSocketIO.emitWithAckAsync('privateMessage', {
+          //       'to': 'AsxaAHGzqJmPl2r3AAAL',
+          //       'message': Uuid().v4().substring(0, 8),
+          //     });
+          //   },
+          // ),
+          // IconButton(
+          //   icon: const Icon(Icons.add),
+          //   onPressed: () async {
+          //     inspectableSocketIO.emitWithAckAsync('privateMessage', {
+          //       'to': 'mfLeBcxfY5mLQa2eAAAP',
+          //       'message': Uuid().v4().substring(0, 8),
+          //     });
+          //   },
+          // ),
           IconButton(
             icon: const Icon(Icons.delete),
             onPressed: () {
@@ -118,6 +137,10 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
         ],
       ),
 
+      floatingActionButton: FloatingActionButton(
+        child: const Icon(Icons.link_off),
+        onPressed: () => socket.disconnect(),
+      ),
       body: TabBarView(
         controller: _tabController,
         children: [
@@ -152,15 +175,15 @@ class _SocketInspectorScreenState extends State<SocketInspectorScreen>
             SizedBox(height: 8),
             Text(
               'Server: ${socket.io.uri}',
-              style: const TextStyle(fontSize: 14),
+              style: const TextStyle(fontSize: 14, color: Colors.white),
             ),
             Text(
               'Transports: ${socket.io.options?['transports']?.join(', ')}',
-              style: const TextStyle(fontSize: 14),
+              style: const TextStyle(fontSize: 14, color: Colors.white),
             ),
             Text(
               'Status: ${socket.connected ? "Connected 🟢" : "Disconnected 🔴"}',
-              style: const TextStyle(fontSize: 14),
+              style: const TextStyle(fontSize: 14, color: Colors.white),
             ),
             SizedBox(height: 8),
             events.isEmpty
