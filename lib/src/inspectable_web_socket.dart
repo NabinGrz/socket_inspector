@@ -15,41 +15,6 @@ class InspectableSocketIO {
   }
 
   void startListening() {
-    // try {
-    //   _socket = IO.io(
-    //     uri,
-    //     IO.OptionBuilder()
-    //         .setTransports(['websocket'])
-    //         .disableAutoConnect()
-    //         .build(),
-    //   );
-
-    //   _socket?.connect();
-
-    //   // Track connection attempt
-    //   inspector.log(
-    //     SocketEvent(
-    //       type: SocketEventType.connectionAttempt,
-    //       data: {'uri': uri, 'options': options},
-    //       sessionId: sessionId,
-    //     ),
-    //   );
-    // } on Exception catch (e) {
-    //   inspector.log(
-    //     SocketEvent(
-    //       type: SocketEventType.error,
-    //       data: {'error': e.toString(), 'context': 'connection_setup'},
-    //       severity: EventSeverity.error,
-    //       metrics: SocketEventMetrics(
-    //         errorCode: 'CONNECTION_SETUP_ERROR',
-    //         errorMessage: e.toString(),
-    //       ),
-    //       sessionId: sessionId,
-    //     ),
-    //   );
-    // }
-
-    // Connection events
     socket?.onConnect((data) {
       inspector.log(
         SocketEvent(
@@ -84,7 +49,6 @@ class InspectableSocketIO {
           ),
           sessionId: sessionId,
         ),
-        "onReconnect",
       );
       print("Reconnected: $data");
     });
@@ -101,6 +65,7 @@ class InspectableSocketIO {
           ),
           sessionId: sessionId,
         ),
+        "onError",
       );
       print("Error: $err");
     });
@@ -114,6 +79,7 @@ class InspectableSocketIO {
           payload: data,
           sessionId: sessionId,
         ),
+        "onPing",
       );
     });
 
@@ -180,7 +146,6 @@ class InspectableSocketIO {
         metrics: SocketEventMetrics(dataSizeBytes: _calculateDataSize(data)),
         sessionId: sessionId,
       ),
-      "emit",
     );
   }
 
@@ -205,7 +170,6 @@ class InspectableSocketIO {
             ),
             sessionId: sessionId,
           ),
-          "emitWithAckAsync",
         );
 
         if (!completer.isCompleted) {
