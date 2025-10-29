@@ -15,6 +15,41 @@ class InspectableSocketIO {
   }
 
   void startListening() {
+    // try {
+    //   _socket = IO.io(
+    //     uri,
+    //     IO.OptionBuilder()
+    //         .setTransports(['websocket'])
+    //         .disableAutoConnect()
+    //         .build(),
+    //   );
+
+    //   _socket?.connect();
+
+    //   // Track connection attempt
+    //   inspector.log(
+    //     SocketEvent(
+    //       type: SocketEventType.connectionAttempt,
+    //       data: {'uri': uri, 'options': options},
+    //       sessionId: sessionId,
+    //     ),
+    //   );
+    // } on Exception catch (e) {
+    //   inspector.log(
+    //     SocketEvent(
+    //       type: SocketEventType.error,
+    //       data: {'error': e.toString(), 'context': 'connection_setup'},
+    //       severity: EventSeverity.error,
+    //       metrics: SocketEventMetrics(
+    //         errorCode: 'CONNECTION_SETUP_ERROR',
+    //         errorMessage: e.toString(),
+    //       ),
+    //       sessionId: sessionId,
+    //     ),
+    //   );
+    // }
+
+    // Connection events
     socket?.onConnect((data) {
       inspector.log(
         SocketEvent(
@@ -49,6 +84,7 @@ class InspectableSocketIO {
           ),
           sessionId: sessionId,
         ),
+        "onReconnect",
       );
       print("Reconnected: $data");
     });
@@ -99,35 +135,35 @@ class InspectableSocketIO {
     });
 
     // // Catch all incoming messages
-    // socket?.onAny((event, data) {
-    //   print(" ################ Received event: $event with data: $data");
+    socket?.onAny((event, data) {
+      print(" ################ Received event: $event with data: $data");
 
-    //   // Check if this is a response to a tracked request
-    //   String? requestId =
-    //       _pendingRequests.keys.where((id) => event.contains(id)).firstOrNull;
+      // Check if this is a response to a tracked request
+      String? requestId =
+          _pendingRequests.keys.where((id) => event.contains(id)).firstOrNull;
 
-    //   int? latency;
-    //   if (requestId != null) {
-    //     final requestTime = _pendingRequests.remove(requestId);
-    //     if (requestTime != null) {
-    //       latency = DateTime.now().difference(requestTime).inMilliseconds;
-    //     }
-    //   }
+      int? latency;
+      if (requestId != null) {
+        final requestTime = _pendingRequests.remove(requestId);
+        if (requestTime != null) {
+          latency = DateTime.now().difference(requestTime).inMilliseconds;
+        }
+      }
 
-    //   inspector.log(
-    //     SocketEvent(
-    //       type: SocketEventType.messageReceived,
-    //       eventName: event,
-    //       payload: data,
-    //       severity: EventSeverity.info,
-    //       metrics: SocketEventMetrics(
-    //         latencyMs: latency,
-    //         dataSizeBytes: _calculateDataSize(data),
-    //       ),
-    //       sessionId: sessionId,
-    //     ),
-    //   );
-    // });
+      inspector.log(
+        SocketEvent(
+          type: SocketEventType.messageReceived,
+          eventName: event,
+          payload: data,
+          severity: EventSeverity.info,
+          metrics: SocketEventMetrics(
+            latencyMs: latency,
+            dataSizeBytes: _calculateDataSize(data),
+          ),
+          sessionId: sessionId,
+        ),
+      );
+    });
   }
 
   void emit(String event, dynamic data) {
@@ -144,42 +180,24 @@ class InspectableSocketIO {
         metrics: SocketEventMetrics(dataSizeBytes: _calculateDataSize(data)),
         sessionId: sessionId,
       ),
+      "emit",
     );
   }
 
-  Future<dynamic> emitWithAckAsync(String event, dynamic data) async {
-    final response = await socket?.emitWithAckAsync(event, data);
-    inspector.log(
-      SocketEvent(
-        type: SocketEventType.messageSent,
-        eventName: event,
-        payload: data,
-        response: response,
-        severity: EventSeverity.info,
-        metrics: SocketEventMetrics(
-          dataSizeBytes: _calculateDataSize(response),
-        ),
-        sessionId: sessionId,
-      ),
-    );
-    return response;
-  }
-
-  dynamic emitWithAck(String event, dynamic data) {
-    var responseData;
+  Future<dynamic> emitWithAckAsync(String event, dynamic payload) async {
+    final completer = Completer<dynamic>();
     final eventId = '${DateTime.now().millisecondsSinceEpoch}_$event';
     _pendingRequests[eventId] = DateTime.now();
 
     socket?.emitWithAck(
       event,
-      data,
+      payload,
       ack: (response) {
-        responseData = response;
         inspector.log(
           SocketEvent(
             type: SocketEventType.messageSent,
             eventName: event,
-            payload: data,
+            payload: payload,
             response: response,
             severity: EventSeverity.info,
             metrics: SocketEventMetrics(
@@ -187,10 +205,23 @@ class InspectableSocketIO {
             ),
             sessionId: sessionId,
           ),
+          "emitWithAckAsync",
         );
+
+        if (!completer.isCompleted) {
+          completer.complete(response);
+        }
       },
     );
-    return responseData;
+
+    // return completer.future;
+    // Return a default response if server never responds
+    return completer.future.timeout(
+      Duration(seconds: 5),
+      onTimeout: () {
+        return {'status': 'no_response', 'event': event};
+      },
+    );
   }
 
   void on(String event, Function(dynamic) handler) {
