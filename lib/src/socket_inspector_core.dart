@@ -88,7 +88,8 @@ class SocketInspectorCore {
     }
   }
 
-  void log(SocketEvent event, [String? message]) {
+  void log(SocketEvent event, String from, [String? message]) {
+    print(" ############### log from: $from");
     _events.add(event);
     _currentSession?.events.add(event);
     _controller.add(event);

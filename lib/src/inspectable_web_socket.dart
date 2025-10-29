@@ -24,6 +24,7 @@ class InspectableSocketIO {
           sessionId: sessionId,
           from: "onConnect",
         ),
+        "onConnect",
       );
       print("Socket Connection Status: ${socket?.connected}");
     });
@@ -37,6 +38,7 @@ class InspectableSocketIO {
           sessionId: sessionId,
           from: "onDisconnect",
         ),
+        "onDisconnect",
       );
     });
 
@@ -52,6 +54,7 @@ class InspectableSocketIO {
           sessionId: sessionId,
           from: "onReconnect",
         ),
+        "onReconnect",
       );
       print("Reconnected: $data");
     });
@@ -103,6 +106,7 @@ class InspectableSocketIO {
           sessionId: sessionId,
           from: "onPong",
         ),
+        "onPong",
       );
     });
 
@@ -135,6 +139,7 @@ class InspectableSocketIO {
           sessionId: sessionId,
           from: "onAny",
         ),
+        "onAny",
       );
     });
   }
@@ -154,6 +159,7 @@ class InspectableSocketIO {
         sessionId: sessionId,
         from: "emit",
       ),
+      "emit",
     );
   }
 
@@ -179,6 +185,7 @@ class InspectableSocketIO {
             sessionId: sessionId,
             from: "emitWithAckAsync",
           ),
+          "emitWithAckAsync",
         );
 
         if (!completer.isCompleted) {
@@ -209,6 +216,7 @@ class InspectableSocketIO {
           sessionId: sessionId,
           from: "on",
         ),
+        "on",
       );
       handler(data);
     });
@@ -224,6 +232,7 @@ class InspectableSocketIO {
         sessionId: sessionId,
         from: "disconnect",
       ),
+      "disconnect",
     );
   }
 
@@ -270,6 +279,7 @@ class InspectableSocketIO {
         sessionId: sessionId,
         from: "simulateError",
       ),
+      "simulateError",
     );
   }
 }
