@@ -406,7 +406,7 @@ class InspectableSocketIO {
     );
   }
 
-  Future<void> emitWithAckAsync(String event, dynamic data) async {
+  Future<dynamic> emitWithAckAsync(String event, dynamic data) async {
     final response = await socket?.emitWithAckAsync(event, data);
     inspector.log(
       SocketEvent(
@@ -421,9 +421,11 @@ class InspectableSocketIO {
         sessionId: sessionId,
       ),
     );
+    return response;
   }
 
-  void emitWithAck(String event, dynamic data) {
+  dynamic emitWithAck(String event, dynamic data) {
+    var responseData;
     final eventId = '${DateTime.now().millisecondsSinceEpoch}_$event';
     _pendingRequests[eventId] = DateTime.now();
 
@@ -431,6 +433,7 @@ class InspectableSocketIO {
       event,
       data,
       ack: (response) {
+        responseData = response;
         inspector.log(
           SocketEvent(
             type: SocketEventType.messageSent,
@@ -446,6 +449,7 @@ class InspectableSocketIO {
         );
       },
     );
+    return responseData;
   }
 
   void on(String event, Function(dynamic) handler) {
